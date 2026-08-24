@@ -20,7 +20,21 @@ import { Menu, X, HardHat } from 'lucide-react';
 function MainAppContent() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { currentUser, isAuthenticated } = useStroy();
+  const { currentUser, isAuthenticated, isHydrated, theme } = useStroy();
+
+  // Until hydrated, render a consistent skeleton shell
+  if (!isHydrated) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center ${theme === 'light' ? 'bg-[#F1F5F9] text-gray-900' : 'bg-[#0F1115] text-white'}`}>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-orange-500 border-t-transparent"></div>
+          <span className="text-xs font-mono font-bold uppercase tracking-widest text-gray-400">
+            СТРОЙМЕНЕДЖЕР 2026 юкланмоқда...
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   // If user is not authenticated, show the Login and Password authentication screen
   if (!isAuthenticated) {
@@ -31,7 +45,12 @@ function MainAppContent() {
   const currentTab: ActiveTab = currentUser.role === 'pto_upr' && activeTab === 'zayavka' ? 'tech_report' : activeTab;
 
   return (
-    <div className="min-h-screen bg-[#0F1115] font-sans text-white flex flex-col selection:bg-orange-500 selection:text-black">
+    <div
+      data-theme={theme}
+      className={`min-h-screen font-sans flex flex-col selection:bg-orange-500 selection:text-black ${
+        theme === 'light' ? 'theme-light bg-[#F1F5F9] text-slate-900' : 'theme-dark bg-[#0F1115] text-white'
+      }`}
+    >
       {/* Top Navbar */}
       <Navbar />
 

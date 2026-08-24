@@ -15,10 +15,12 @@ import {
   CheckCircle2,
   Clock,
   Layers,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export function Navbar() {
-  const { currentUser, users, loginAs, logout, zayavkas, canApproveZayavka } = useStroy();
+  const { currentUser, users, loginAs, logout, zayavkas, canApproveZayavka, theme, toggleTheme } = useStroy();
   const [showRoleMenu, setShowRoleMenu] = useState(false);
   const [showNotif, setShowNotif] = useState(false);
 
@@ -66,8 +68,29 @@ export function Navbar() {
         <span className="text-[10px] text-green-500 font-bold tracking-widest ml-1">● SYNCED</span>
       </div>
 
-      {/* Right Controls: Notifications, Role Switcher Demo, User profile */}
+      {/* Right Controls: Notifications, Theme Switcher, Role Switcher Demo, User profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        {/* Theme Toggle (Kun / Tun) */}
+        <button
+          id="btn-toggle-theme"
+          type="button"
+          onClick={toggleTheme}
+          className="flex items-center gap-1.5 rounded border border-gray-800 bg-gray-900 px-2.5 py-1.5 text-xs font-bold text-gray-300 transition hover:border-orange-500 hover:text-white"
+          title={theme === 'dark' ? 'Кун (Light) режимига ўтиш' : 'Тун (Dark) режимига ўтиш'}
+        >
+          {theme === 'dark' ? (
+            <>
+              <Sun className="h-4 w-4 text-amber-400" />
+              <span className="hidden sm:inline font-mono text-[11px] font-bold">Кун</span>
+            </>
+          ) : (
+            <>
+              <Moon className="h-4 w-4 text-blue-400" />
+              <span className="hidden sm:inline font-mono text-[11px] font-bold">Тун</span>
+            </>
+          )}
+        </button>
+
         {/* Pending approvals badge */}
         <div className="relative">
           <button

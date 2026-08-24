@@ -47,6 +47,10 @@ interface StroyContextType {
   setCurrentUser: (user: User) => void;
   users: User[];
   isAuthenticated: boolean;
+  isHydrated: boolean;
+  theme: 'dark' | 'light';
+  setTheme: (theme: 'dark' | 'light') => void;
+  toggleTheme: () => void;
   loginAs: (userId: string) => void;
   loginWithCredentials: (login: string, password: string) => { success: boolean; message?: string };
   failedLoginAttempts: number;
@@ -139,59 +143,128 @@ interface StroyContextType {
 const StroyContext = createContext<StroyContextType | undefined>(undefined);
 
 export function StroyProvider({ children }: { children: React.ReactNode }) {
-  // Helper for lazy storage initialization
-  const getInitial = <T,>(key: string, fallback: T): T => {
-    if (typeof window === 'undefined') return fallback;
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : fallback;
-    } catch {
-      return fallback;
-    }
-  };
-
-  // 1. Current user
-  const [currentUser, setCurrentUser] = useState<User>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('sm_current_user');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          const found = INITIAL_USERS.find((u) => u.id === parsed.id);
-          if (found) return found;
-        }
-      } catch {}
-    }
-    return INITIAL_USERS[1];
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      const auth = localStorage.getItem('sm_is_authenticated');
-      if (auth !== null) return auth === 'true';
-    }
-    return true; // Default logged in for initial preview, user can logout or test login
-  });
+  // 1. Current user & UI State
+  const [currentUser, setCurrentUser] = useState<User>(INITIAL_USERS[1]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [theme, setThemeState] = useState<'dark' | 'light'>('dark');
   const [users, setUsers] = useState<User[]>(INITIAL_USERS);
   const [failedLoginAttempts, setFailedLoginAttempts] = useState<number>(0);
   const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
+  const [isHydrated, setIsHydrated] = useState<boolean>(false);
+
+  // Apply theme to HTML document element and body
+  const applyTheme = (newTheme: 'dark' | 'light') => {
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      const body = document.body;
+      if (newTheme === 'dark') {
+        root.classList.add('dark');
+        root.classList.remove('light', 'theme-light');
+        root.setAttribute('data-theme', 'dark');
+        if (body) {
+          body.classList.add('dark');
+          body.classList.remove('light', 'theme-light');
+          body.setAttribute('data-theme', 'dark');
+        }
+      } else {
+        root.classList.add('light', 'theme-light');
+        root.classList.remove('dark');
+        root.setAttribute('data-theme', 'light');
+        if (body) {
+          body.classList.add('light', 'theme-light');
+          body.classList.remove('dark');
+          body.setAttribute('data-theme', 'light');
+        }
+      }
+    }
+  };
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  const setTheme = (newTheme: 'dark' | 'light') => {
+    setThemeState(newTheme);
+    saveState('sm_theme', newTheme);
+    applyTheme(newTheme);
+  };
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+  };
 
   // 2. Master Data
-  const [objects, setObjects] = useState<ConstructionObject[]>(() => getInitial('sm_objects', INITIAL_OBJECTS));
-  const [materials, setMaterials] = useState<MaterialItem[]>(() => getInitial('sm_materials', INITIAL_MATERIALS));
-  const [mechanisms, setMechanisms] = useState<MechanismItem[]>(() => getInitial('sm_mechanisms', INITIAL_MECHANISMS));
+  const [objects, setObjects] = useState<ConstructionObject[]>(INITIAL_OBJECTS);
+  const [materials, setMaterials] = useState<MaterialItem[]>(INITIAL_MATERIALS);
+  const [mechanisms, setMechanisms] = useState<MechanismItem[]>(INITIAL_MECHANISMS);
 
   // 3. Workflows Data
-  const [zayavkas, setZayavkas] = useState<MaterialZayavka[]>(() => getInitial('sm_zayavkas', INITIAL_ZAYAVKAS));
-  const [techReports, setTechReports] = useState<TechReport[]>(() => getInitial('sm_tech_reports', INITIAL_TECH_REPORTS));
-  const [ummZayavkas, setUmmZayavkas] = useState<UmmZayavka[]>(() => getInitial('sm_umm', INITIAL_UMM_ZAYAVKAS));
-  const [pmuZayavkas, setPmuZayavkas] = useState<PmuZayavka[]>(() => getInitial('sm_pmu', INITIAL_PMU_ZAYAVKAS));
-  const [pmuNakladnoys, setPmuNakladnoys] = useState<PmuIzdeliyeNakladnoy[]>(() => getInitial('sm_pmu_nak', INITIAL_PMU_IZDELIYE_NAKLADNOY));
-  const [nakladnoys, setNakladnoys] = useState<Nakladnoy[]>(() => getInitial('sm_nakladnoys', INITIAL_NAKLADNOYS));
-  const [stocks, setStocks] = useState<StockBalance[]>(() => getInitial('sm_stocks', INITIAL_STOCKS));
-  const [accountInvoices, setAccountInvoices] = useState<AccountInvoice[]>(() => getInitial('sm_accounts', INITIAL_ACCOUNT_INVOICES));
-  const [synonymMappings, setSynonymMappings] = useState<MaterialSynonymMapping[]>(() => getInitial('sm_mappings', INITIAL_SYNONYM_MAPPINGS));
-  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => getInitial('sm_activity_logs', INITIAL_ACTIVITY_LOGS));
-  const [backups, setBackups] = useState<BackupRecord[]>(() => getInitial('sm_backups', INITIAL_BACKUPS));
+  const [zayavkas, setZayavkas] = useState<MaterialZayavka[]>(INITIAL_ZAYAVKAS);
+  const [techReports, setTechReports] = useState<TechReport[]>(INITIAL_TECH_REPORTS);
+  const [ummZayavkas, setUmmZayavkas] = useState<UmmZayavka[]>(INITIAL_UMM_ZAYAVKAS);
+  const [pmuZayavkas, setPmuZayavkas] = useState<PmuZayavka[]>(INITIAL_PMU_ZAYAVKAS);
+  const [pmuNakladnoys, setPmuNakladnoys] = useState<PmuIzdeliyeNakladnoy[]>(INITIAL_PMU_IZDELIYE_NAKLADNOY);
+  const [nakladnoys, setNakladnoys] = useState<Nakladnoy[]>(INITIAL_NAKLADNOYS);
+  const [stocks, setStocks] = useState<StockBalance[]>(INITIAL_STOCKS);
+  const [accountInvoices, setAccountInvoices] = useState<AccountInvoice[]>(INITIAL_ACCOUNT_INVOICES);
+  const [synonymMappings, setSynonymMappings] = useState<MaterialSynonymMapping[]>(INITIAL_SYNONYM_MAPPINGS);
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(INITIAL_ACTIVITY_LOGS);
+  const [backups, setBackups] = useState<BackupRecord[]>(INITIAL_BACKUPS);
+
+  // Load from localStorage only on client after mount (prevents SSR Hydration mismatch)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const savedUser = localStorage.getItem('sm_current_user');
+        if (savedUser) {
+          const parsed = JSON.parse(savedUser);
+          const found = INITIAL_USERS.find((u) => u.id === parsed.id);
+          if (found) setCurrentUser(found);
+        }
+
+        const savedAuth = localStorage.getItem('sm_is_authenticated');
+        if (savedAuth !== null) {
+          setIsAuthenticated(savedAuth === 'true');
+        }
+
+        const savedTheme = localStorage.getItem('sm_theme');
+        if (savedTheme === 'light' || savedTheme === 'dark') {
+          setThemeState(savedTheme);
+          applyTheme(savedTheme);
+        } else {
+          applyTheme('dark');
+        }
+
+        const loadKey = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T>>) => {
+          const item = localStorage.getItem(key);
+          if (item) {
+            try {
+              setter(JSON.parse(item));
+            } catch {}
+          }
+        };
+
+        loadKey('sm_objects', setObjects);
+        loadKey('sm_materials', setMaterials);
+        loadKey('sm_mechanisms', setMechanisms);
+        loadKey('sm_zayavkas', setZayavkas);
+        loadKey('sm_tech_reports', setTechReports);
+        loadKey('sm_umm', setUmmZayavkas);
+        loadKey('sm_pmu', setPmuZayavkas);
+        loadKey('sm_pmu_nak', setPmuNakladnoys);
+        loadKey('sm_nakladnoys', setNakladnoys);
+        loadKey('sm_stocks', setStocks);
+        loadKey('sm_accounts', setAccountInvoices);
+        loadKey('sm_mappings', setSynonymMappings);
+        loadKey('sm_activity_logs', setActivityLogs);
+        loadKey('sm_backups', setBackups);
+      } catch {}
+      setIsHydrated(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Save changes to localStorage
   const saveState = (key: string, val: any) => {
@@ -1495,6 +1568,10 @@ export function StroyProvider({ children }: { children: React.ReactNode }) {
         setCurrentUser,
         users,
         isAuthenticated,
+        isHydrated,
+        theme,
+        setTheme,
+        toggleTheme,
         loginAs,
         loginWithCredentials,
         failedLoginAttempts,

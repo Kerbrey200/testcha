@@ -15,10 +15,12 @@ import {
   AlertCircle,
   KeyRound,
   CheckCircle2,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 export function LoginView() {
-  const { users, loginWithCredentials, loginAs } = useStroy();
+  const { users, loginWithCredentials, loginAs, theme, toggleTheme } = useStroy();
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -62,7 +64,12 @@ export function LoginView() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0F1115] text-white flex flex-col justify-between selection:bg-orange-500 selection:text-black">
+    <div
+      data-theme={theme}
+      className={`min-h-screen flex flex-col justify-between selection:bg-orange-500 selection:text-black ${
+        theme === 'light' ? 'theme-light bg-[#F1F5F9] text-slate-900' : 'theme-dark bg-[#0F1115] text-white'
+      }`}
+    >
       {/* Top Bar */}
       <div className="border-b border-gray-800 bg-black/60 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -84,9 +91,32 @@ export function LoginView() {
           </div>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-gray-400">
-          <ShieldCheck className="h-4 w-4 text-emerald-400" />
-          <span className="font-bold uppercase tracking-wider text-[11px]">Ҳимояланган тизим (14 та роль)</span>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:flex items-center gap-2 text-xs font-mono text-gray-400">
+            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <span className="font-bold uppercase tracking-wider text-[11px]">Ҳимояланган тизим (14 та роль)</span>
+          </div>
+
+          {/* Theme Toggle in Login */}
+          <button
+            id="btn-login-theme-toggle"
+            type="button"
+            onClick={toggleTheme}
+            className="flex items-center gap-1.5 rounded border border-gray-800 bg-[#161920] px-3 py-1.5 text-xs font-bold text-gray-300 transition hover:border-orange-500 hover:text-white"
+            title={theme === 'dark' ? 'Кун (Light) режимига ўтиш' : 'Тун (Dark) режимига ўтиш'}
+          >
+            {theme === 'dark' ? (
+              <>
+                <Sun className="h-4 w-4 text-amber-400" />
+                <span className="font-mono text-[11px] font-bold">Кун режими</span>
+              </>
+            ) : (
+              <>
+                <Moon className="h-4 w-4 text-blue-400" />
+                <span className="font-mono text-[11px] font-bold">Тун режими</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
