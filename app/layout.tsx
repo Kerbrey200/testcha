@@ -13,27 +13,48 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              try {
-                if (typeof window !== 'undefined') {
-                  var origFetch = window.fetch;
-                  try {
-                    Object.defineProperty(window, 'fetch', {
-                      value: origFetch,
-                      writable: true,
-                      configurable: true,
-                      enumerable: true
-                    });
-                  } catch (err) {}
+              (function() {
+                try {
+                  if (typeof window !== 'undefined') {
+                    // Pre-emptively make fetch configurable if possible
+                    var proto = window.constructor ? window.constructor.prototype : Object.getPrototypeOf(window);
+                    if (proto) {
+                      var desc = Object.getOwnPropertyDescriptor(proto, 'fetch');
+                      if (desc && !desc.set && desc.configurable) {
+                        var _fetch = desc.get ? desc.get.call(window) : window.fetch;
+                        Object.defineProperty(proto, 'fetch', {
+                          get: function() { return _fetch; },
+                          set: function(v) { _fetch = v; },
+                          configurable: true,
+                          enumerable: true
+                        });
+                      }
+                    }
+                  }
+                } catch(e) {}
 
-                  window.addEventListener('error', function(event) {
-                    if (event && event.message && event.message.includes('fetch of #<Window>')) {
-                      event.preventDefault();
-                      event.stopPropagation();
+                // Global suppression for extension injection error
+                if (typeof window !== 'undefined') {
+                  window.addEventListener('error', function(e) {
+                    if (e && (
+                      (e.message && (e.message.indexOf('fetch') !== -1 || e.message.indexOf('Window') !== -1)) ||
+                      (e.error && e.error.message && (e.error.message.indexOf('fetch') !== -1 || e.error.message.indexOf('Window') !== -1))
+                    )) {
+                      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                      if (e.stopPropagation) e.stopPropagation();
+                      if (e.preventDefault) e.preventDefault();
                       return true;
                     }
                   }, true);
+
+                  window.addEventListener('unhandledrejection', function(e) {
+                    if (e && e.reason && e.reason.message && e.reason.message.indexOf('fetch') !== -1) {
+                      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+                      if (e.preventDefault) e.preventDefault();
+                    }
+                  }, true);
                 }
-              } catch (e) {}
+              })();
             `,
           }}
         />
