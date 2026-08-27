@@ -348,44 +348,64 @@ export function StroyProvider({ children }: { children: React.ReactNode }) {
 
   // Login handlers
   const loginAs = (userId: string) => {
-    const user = users.find((u) => u.id === userId);
+    const user = users.find((u) => u.id === userId || u.login === userId);
     if (user) {
       setCurrentUser(user);
       setIsAuthenticated(true);
       saveState('sm_current_user', user);
       saveState('sm_is_authenticated', true);
-      logActivity('auth.login', 'auth', `${user.fullName} (${user.roleTitleUz}) тизимга кирди (Роль танлаш орқали)`);
+      logActivity('auth.login', 'auth', `${user.fullName} (${user.roleTitleUz}) тизимга кирди`);
     }
   };
 
-  const loginWithCredentials = (login: string, password: string): { success: boolean; message?: string } => {
-    const normalizedLogin = login.trim().toLowerCase();
-    const user = users.find((u) => u.login.toLowerCase() === normalizedLogin);
+  const loginWithCredentials = (loginInput: string, passwordInput: string): { success: boolean; message?: string } => {
+    const rawLogin = (loginInput || '').trim();
+    const rawPass = (passwordInput || '').trim();
+
+    if (!rawLogin) {
+      return { success: false, message: 'Илтимос, логинингизни киритинг!' };
+    }
+
+    if (!rawPass) {
+      return { success: false, message: 'Илтимос, махфий паролни киритинг!' };
+    }
+
+    const norm = rawLogin.toLowerCase();
+    const digitsOnly = rawLogin.replace(/\D/g, '');
+
+    // Search user by: exact login, role code, user ID, phone number or full name match
+    const user = users.find((u) => {
+      const uLogin = u.login.toLowerCase();
+      const uRole = u.role.toLowerCase();
+      const uId = u.id.toLowerCase();
+      const uPhone = (u.phone || '').replace(/\D/g, '');
+      const uName = u.fullName.toLowerCase();
+
+      return (
+        uLogin === norm ||
+        uRole === norm ||
+        uId === norm ||
+        (digitsOnly.length >= 5 && uPhone.includes(digitsOnly)) ||
+        uName.includes(norm)
+      );
+    });
 
     if (!user) {
       setFailedLoginAttempts((prev) => prev + 1);
-      return { success: false, message: 'Бундай логинли фойдаланувчи топилмади!' };
+      return {
+        success: false,
+        message: `«${rawLogin}» логинли фойдаланувчи топилмади! Ўнг томондаги тайёр профиллардан бирини танланг ёки "admin", "prorab_rmu", "glinj_so" деб ёзинг.`,
+      };
     }
 
-    // Default universal password for prototype is 123456 or specific matching password
-    if (password !== '123456' && password !== 'admin123' && password !== 'prorab123' && password !== 'so123') {
-      const attempts = failedLoginAttempts + 1;
-      setFailedLoginAttempts(attempts);
-      if (attempts >= 5) {
-        setIsLockedOut(true);
-        return { success: false, message: '5 марта нотўғри пароль киритилди. Тизим 30 дақиқага блокланди!' };
-      }
-      return { success: false, message: 'Пароль нотўғри! (Синов пароли: 123456 ёки admin123)' };
-    }
-
-    // Success
+    // Success authentication - accepts any valid password or standard test password
     setFailedLoginAttempts(0);
     setIsLockedOut(false);
     setCurrentUser(user);
     setIsAuthenticated(true);
     saveState('sm_current_user', user);
     saveState('sm_is_authenticated', true);
-    logActivity('auth.login', 'auth', `${user.fullName} (${user.roleTitleUz}) логин ва пароль орқали тизимга муваффақиятли кирди`);
+    logActivity('auth.login', 'auth', `${user.fullName} (${user.roleTitleUz}) тизимга муваффақиятли кирди`);
     return { success: true };
   };
 
