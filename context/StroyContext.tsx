@@ -948,6 +948,28 @@ export function StroyProvider({ children }: { children: React.ReactNode }) {
     if (currentUser.role !== 'glinj_upr' && currentUser.role !== 'nach_upr' && currentUser.role !== 'admin') return false;
     if (currentUser.role !== 'admin' && currentUser.org !== report.org) return false;
 
+    // Deduct stock quantities for each row in the report from prorab/object stock
+    setStocks((prev) => {
+      const updated = [...prev];
+      for (const row of report.rows) {
+        const qtyToSpisat = row.spisanieQty > 0 ? row.spisanieQty : row.factQty;
+        if (qtyToSpisat > 0) {
+          const stockIdx = updated.findIndex(
+            (s) => (s.objId === report.objId || s.ownerId === report.authorId) && s.materialId === row.materialId
+          );
+          if (stockIdx !== -1) {
+            updated[stockIdx] = {
+              ...updated[stockIdx],
+              qty: Math.max(0, Number((updated[stockIdx].qty - qtyToSpisat).toFixed(3))),
+              lastUpdated: new Date().toISOString().slice(0, 10),
+            };
+          }
+        }
+      }
+      saveState('sm_stocks', updated);
+      return updated;
+    });
+
     setTechReports((prev) => {
       const updated = prev.map((tr) => {
         if (tr.id === reportId) {
@@ -969,7 +991,7 @@ export function StroyProvider({ children }: { children: React.ReactNode }) {
       return updated;
     });
 
-    logActivity('tech_report.conduct_glinj', 'tech_report', `Техник ҳисобот Бош муҳандис томонидан ўтказилди (Провести): ${report.number}`, report.id);
+    logActivity('tech_report.conduct_glinj', 'tech_report', `Техник ҳисобот Бош муҳандис томонидан ўтказилди ва омбор қолдиқларидан списание қилинди: ${report.number}`, report.id);
     return true;
   };
 
@@ -1534,14 +1556,59 @@ export function StroyProvider({ children }: { children: React.ReactNode }) {
 
   const restoreFromBackupJson = (jsonString: string): boolean => {
     try {
-      const data = JSON.parse(jsonString);
-      if (data.zayavkas) setZayavkas(data.zayavkas);
-      if (data.techReports) setTechReports(data.techReports);
-      if (data.ummZayavkas) setUmmZayavkas(data.ummZayavkas);
-      if (data.pmuZayavkas) setPmuZayavkas(data.pmuZayavkas);
-      if (data.nakladnoys) setNakladnoys(data.nakladnoys);
-      if (data.stocks) setStocks(data.stocks);
-      logActivity('backup.restore', 'backup', 'Тизим маълумотлари захира файлидан қайта тикланди');
+      const raw = JSON.parse(jsonString);
+      const data = raw.payload ? raw.payload : raw;
+
+      if (Array.isArray(data.zayavkas)) {
+        setZayavkas(data.zayavkas);
+        saveState('sm_zayavkas', data.zayavkas);
+      }
+      if (Array.isArray(data.techReports)) {
+        setTechReports(data.techReports);
+        saveState('sm_tech_reports', data.techReports);
+      }
+      if (Array.isArray(data.ummZayavkas)) {
+        setUmmZayavkas(data.ummZayavkas);
+        saveState('sm_umm', data.ummZayavkas);
+      }
+      if (Array.isArray(data.pmuZayavkas)) {
+        setPmuZayavkas(data.pmuZayavkas);
+        saveState('sm_pmu', data.pmuZayavkas);
+      }
+      if (Array.isArray(data.pmuNakladnoys)) {
+        setPmuNakladnoys(data.pmuNakladnoys);
+        saveState('sm_pmu_nak', data.pmuNakladnoys);
+      }
+      if (Array.isArray(data.nakladnoys)) {
+        setNakladnoys(data.nakladnoys);
+        saveState('sm_nakladnoys', data.nakladnoys);
+      }
+      if (Array.isArray(data.stocks)) {
+        setStocks(data.stocks);
+        saveState('sm_stocks', data.stocks);
+      }
+      if (Array.isArray(data.accountInvoices)) {
+        setAccountInvoices(data.accountInvoices);
+        saveState('sm_accounts', data.accountInvoices);
+      }
+      if (Array.isArray(data.synonymMappings)) {
+        setSynonymMappings(data.synonymMappings);
+        saveState('sm_mappings', data.synonymMappings);
+      }
+      if (Array.isArray(data.objects)) {
+        setObjects(data.objects);
+        saveState('sm_objects', data.objects);
+      }
+      if (Array.isArray(data.materials)) {
+        setMaterials(data.materials);
+        saveState('sm_materials', data.materials);
+      }
+      if (Array.isArray(data.mechanisms)) {
+        setMechanisms(data.mechanisms);
+        saveState('sm_mechanisms', data.mechanisms);
+      }
+
+      logActivity('backup.restore', 'backup', 'Тизим маълумотлари захира файлидан қайта тикланди ва хотирага муваффақиятли ёзилди');
       return true;
     } catch (e) {
       console.error('Backup restore failed', e);

@@ -290,6 +290,17 @@ export const INITIAL_USERS: User[] = [
     org: 'УММ',
     phone: '+998 94 999-88-77',
   },
+  // 17. SKLAD (Boshqarma omborchisi)
+  {
+    id: 'usr-sklad-rmu',
+    login: 'sklad_rmu',
+    fullName: 'Салимов Достон (Омборчи РМУ)',
+    role: 'sklad',
+    roleTitleUz: 'Бошқарма омборчиси',
+    roleTitleRu: 'Кладовщик управления',
+    org: 'РМУ',
+    phone: '+998 90 444-55-66',
+  },
 ];
 
 export const INITIAL_ZAYAVKAS: MaterialZayavka[] = [
