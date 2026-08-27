@@ -150,7 +150,7 @@ export function Navbar() {
             onClick={() => setShowRoleMenu(!showRoleMenu)}
             className="flex items-center gap-2 rounded border border-gray-800 bg-gray-900 px-3 py-1.5 text-xs font-bold text-gray-300 transition hover:border-orange-500 hover:text-white"
           >
-            <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+            <UserCheck className="h-3.5 w-3.5 text-orange-500" />
             <span className="hidden sm:inline font-bold uppercase text-[10px] tracking-wider text-gray-400">Роль:</span>
             <span className="font-black text-orange-500 font-mono">{currentUser.role}</span>
             <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
